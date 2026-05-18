@@ -3,18 +3,15 @@ import CommonCrypto
 
 /// Plaud Open Platform API Service
 ///
-/// Authentication (see PARTNER_API_GUIDE.md):
-/// - partner_access_token (client-level): for transcription endpoints /open/partner/ai/*
+/// Authentication:
 /// - user_access_token (user-level): for SDK /open/partner/sdk/* and file upload /open/partner/files/*
-/// - X-Device-Signature: for metadata and version/latest
-/// - X-Client-Id + X-Client-Api-Key: alternative auth for transcription
+/// - X-Client-Id + X-Client-Api-Key: for transcription endpoints /open/partner/ai/*
+/// - X-Device-Signature: for metadata and version/latest (SDK internal)
 final class PlaudAPIService {
 
     static let shared = PlaudAPIService()
 
     private let baseURL = "https://platform-us.plaud.ai/developer/api"
-    /// Transcription service base URL (same domain, under /developer/api prefix)
-    private let transcribeBaseURL = "https://platform-us.plaud.ai/developer/api"
     private let session = URLSession.shared
 
     /// 5 MB chunk size (required by API)
@@ -28,8 +25,8 @@ final class PlaudAPIService {
         Bundle.main.object(forInfoDictionaryKey: "PlaudClientId") as? String ?? ""
     }
 
-    private var secretKey: String {
-        Bundle.main.object(forInfoDictionaryKey: "PlaudSecretKey") as? String ?? ""
+    private var apiKey: String {
+        Bundle.main.object(forInfoDictionaryKey: "PlaudApiKey") as? String ?? ""
     }
 
     /// User Access Token (for SDK endpoints and file upload)
@@ -41,44 +38,9 @@ final class PlaudAPIService {
         return Bundle.main.object(forInfoDictionaryKey: "PartnerToken") as? String ?? ""
     }
 
-    // MARK: - Partner Token (client-level, for transcription)
-
-    private var cachedPartnerToken: String?
-    private var partnerTokenExpiry: Date?
-
-    /// Get partner_access_token (for transcription endpoints)
-    /// POST /oauth/partner/access-token (Basic Auth: client_id:secret_key)
-    func getPartnerAccessToken(completion: @escaping (Result<String, Error>) -> Void) {
-        if let cached = cachedPartnerToken, let expiry = partnerTokenExpiry, Date() < expiry {
-            completion(.success(cached))
-            return
-        }
-
-        guard !clientId.isEmpty, !secretKey.isEmpty else {
-            completion(.failure(APIError.missingCredentials("CLIENT_ID or SECRET_KEY not configured")))
-            return
-        }
-
-        let cred = "\(clientId):\(secretKey)"
-        let encoded = Data(cred.utf8).base64EncodedString()
-
-        let url = URL(string: "\(baseURL)/oauth/partner/access-token")!
-        var request = URLRequest(url: url)
-        request.httpMethod = "POST"
-        request.setValue("Basic \(encoded)", forHTTPHeaderField: "Authorization")
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        request.httpBody = "{}".data(using: .utf8)
-
-        perform(request) { [weak self] (result: Result<PartnerTokenResponse, Error>) in
-            switch result {
-            case .success(let resp):
-                self?.cachedPartnerToken = resp.accessToken
-                self?.partnerTokenExpiry = Date().addingTimeInterval(TimeInterval(resp.expiresIn ?? 3600) - 60)
-                completion(.success(resp.accessToken))
-            case .failure(let error):
-                completion(.failure(error))
-            }
-        }
+    /// Transcription auth headers (X-Client-Id + X-Client-Api-Key)
+    var transcriptionAuthHeaders: [String: String] {
+        ["X-Client-Id": clientId, "X-Client-Api-Key": apiKey]
     }
 
     // MARK: - File Upload 3-Step Flow (S3 Multipart)
@@ -176,7 +138,7 @@ final class PlaudAPIService {
         perform(request, completion: completion)
     }
 
-    // MARK: - Transcription (Auth: partner_access_token or X-Client-Id + X-Client-Api-Key)
+    // MARK: - Transcription (Auth: X-Client-Id + X-Client-Api-Key)
 
     /// Submit transcription task
     /// POST /open/partner/ai/transcriptions/
@@ -186,7 +148,7 @@ final class PlaudAPIService {
         authHeaders: [String: String],
         completion: @escaping (Result<TranscriptionSubmitResponse, Error>) -> Void
     ) {
-        let url = URL(string: "\(transcribeBaseURL)/open/partner/ai/transcriptions/")!
+        let url = URL(string: "\(baseURL)/open/partner/ai/transcriptions/")!
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
@@ -217,7 +179,7 @@ final class PlaudAPIService {
         authHeaders: [String: String],
         completion: @escaping (Result<TranscriptionResultResponse, Error>) -> Void
     ) {
-        let url = URL(string: "\(transcribeBaseURL)/open/partner/ai/transcriptions/\(transcriptionId)")!
+        let url = URL(string: "\(baseURL)/open/partner/ai/transcriptions/\(transcriptionId)")!
         var request = URLRequest(url: url)
         request.httpMethod = "GET"
         for (key, value) in authHeaders {
@@ -290,20 +252,6 @@ final class PlaudAPIService {
 }
 
 // MARK: - Response Models
-
-struct PartnerTokenResponse: Decodable {
-    let accessToken: String
-    let refreshToken: String?
-    let tokenType: String?
-    let expiresIn: Int?
-
-    enum CodingKeys: String, CodingKey {
-        case accessToken = "access_token"
-        case refreshToken = "refresh_token"
-        case tokenType = "token_type"
-        case expiresIn = "expires_in"
-    }
-}
 
 struct EmptyResponse: Decodable {
     init() {}

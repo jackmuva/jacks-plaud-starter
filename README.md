@@ -64,12 +64,16 @@ Edit `plaud-template-app/ios/PartnerConfig.xcconfig`:
 # Required for SDK initialization
 USER_ACCESS_TOKEN = your-jwt-token
 
-# Required for Transcription API (application layer, not SDK)
+# Required for Transcription API (optional, not needed for device features)
 PLAUD_CLIENT_ID = your-client-id
-PLAUD_SECRET_KEY = your-secret-key
+PLAUD_API_KEY = your-api-key
 ```
 
 > **Tip:** Create `plaud-template-app/ios/PartnerConfig.local.xcconfig` with your real credentials — it's gitignored and will override the placeholder values.
+>
+> **Where to get these:**
+> - `USER_ACCESS_TOKEN`: Your backend calls `POST /open/partner/users/access-token` to obtain this per-user JWT.
+> - `PLAUD_CLIENT_ID` + `PLAUD_API_KEY`: Create in the [Plaud Developer Portal](https://platform.plaud.ai/developer/portal). See the QUICKSTART guide for details.
 
 ### 2. Update Project Settings
 
@@ -107,7 +111,7 @@ The Template App is a fully functional iOS app demonstrating every SDK capabilit
 | ⚡ **WiFi Fast Transfer** | ~10x faster than BLE |
 | 🔄 **Firmware Update** | OTA upgrade with progress UI |
 | 📝 **Transcription** | Speech-to-text via S3 upload + API |
-| 🔊 **Audio Playback** | OGG → PCM → WAV decoding and playback |
+| 🔊 **Audio Playback** | MP3 playback with floating player |
 
 ### Architecture
 
@@ -182,8 +186,8 @@ PlaudTemplateApp/
 <details>
 <summary><strong>File Sync</strong></summary>
 
-- On connect: `getFileList()` → `exportAudio(format: .opus)` → `deleteFile()`
-- SDK output `.opus` is renamed to `.ogg` (actual format is OGG/Opus container)
+- On connect: `getFileList()` → `exportAudio(format: .mp3)` → `deleteFile()`
+- MP3 format: playable by AVAudioPlayer + accepted by transcription API upload
 - Files belong to the phone after sync; device files are always unsynced
 </details>
 
@@ -217,8 +221,8 @@ PlaudTemplateApp/
 | xcconfig Key | Info.plist Key | Usage |
 |-------------|---------------|-------|
 | `USER_ACCESS_TOKEN` | `UserAccessToken` | SDK initialization (required) |
-| `PLAUD_CLIENT_ID` | `PlaudClientId` | Transcription API (application layer) |
-| `PLAUD_SECRET_KEY` | `PlaudSecretKey` | Transcription API (application layer) |
+| `PLAUD_CLIENT_ID` | `PlaudClientId` | Transcription API (`X-Client-Id` header) |
+| `PLAUD_API_KEY` | `PlaudApiKey` | Transcription API (`X-Client-Api-Key` header) |
 
 ---
 
@@ -282,7 +286,7 @@ PlaudDeviceAgent.shared.getFileList(startSessionId: 0)
 PlaudDeviceAgent.shared.exportAudio(
     sessionId: sessionId,
     outputDir: outputDir,
-    format: .opus,
+    format: .mp3,    // MP3: playable + uploadable for transcription
     channels: 1,
     callback: self
 )
@@ -332,7 +336,9 @@ These APIs are called directly by the application, not through the SDK.
 
 ### Authentication
 
-Requires `PLAUD_CLIENT_ID` and `PLAUD_SECRET_KEY` (not related to SDK initialization).
+Uses `X-Client-Id` + `X-Client-Api-Key` headers. Configure `PLAUD_CLIENT_ID` and `PLAUD_API_KEY` in `PartnerConfig.xcconfig`. These are separate from the `USER_ACCESS_TOKEN` used for SDK initialization.
+
+API keys can be created in the [Plaud Developer Portal](https://platform.plaud.ai/developer/portal) under your application's API Keys panel.
 
 ### Workflow
 
@@ -348,10 +354,10 @@ Base URL: `https://platform-us.plaud.ai/developer/api`
 
 | Endpoint | Method | Auth | Description |
 |----------|--------|------|-------------|
-| `/open/partner/files/upload/generate-presigned-urls` | POST | Bearer token | Get S3 upload URLs |
-| `/open/partner/files/upload/complete-upload` | POST | Bearer token | Complete multipart upload |
-| `/open/partner/ai/transcriptions/` | POST | Bearer partner token | Submit transcription |
-| `/open/partner/ai/transcriptions/{id}` | GET | Bearer partner token | Get transcription result |
+| `/open/partner/files/upload/generate-presigned-urls` | POST | Bearer user token | Get S3 upload URLs |
+| `/open/partner/files/upload/complete-upload` | POST | Bearer user token | Complete multipart upload |
+| `/open/partner/ai/transcriptions/` | POST | X-Client-Id + X-Client-Api-Key | Submit transcription |
+| `/open/partner/ai/transcriptions/{id}` | GET | X-Client-Id + X-Client-Api-Key | Get transcription result |
 
 ---
 

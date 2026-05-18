@@ -1354,6 +1354,7 @@ extension PlaudDeviceBasicSDK.ChaCha20 {
 }
 @objc public enum AudioExportFormat : Swift.Int {
   case pcm = 0
+  case mp3 = 1
   case wav = 2
   case opus = 3
   public var fileExtension: Swift.String {
@@ -1445,6 +1446,9 @@ extension PlaudDeviceBasicSDK.ChaCha20 {
   @objc public var sceneFlag: Swift.Int {
     get
   }
+  @objc public var isWiFiTransferActive: Swift.Bool {
+    get
+  }
   @objc public var skipPermissionCheck: Swift.Bool
   @objc weak public var delegate: (any PlaudDeviceBasicSDK.PlaudDeviceAgentProtocol)? {
     @objc get
@@ -1468,6 +1472,7 @@ extension PlaudDeviceBasicSDK.ChaCha20 {
   @objc public static func getTestAppSecret(_ beta: Swift.Bool = false) -> Swift.String
   @objc public func depair(clear: Swift.Bool = false)
   @objc public func setDeviceWiFi(open: Swift.Bool)
+  @objc public func endWiFiTransfer()
   @objc public func setDeviceBinding(token: Swift.String)
   @objc public func startScan()
   @objc public func stopScan()

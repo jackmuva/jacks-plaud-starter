@@ -24,12 +24,14 @@
 	<string>Bluetooth is required to connect to your Plaud recording device.</string>
 	<key>NSLocalNetworkUsageDescription</key>
 	<string>Local network access is required for WiFi fast transfer.</string>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>Location access is required for WiFi fast transfer to identify and connect to your Plaud device hotspot.</string>
 	<key>PartnerToken</key>
 	<string>$(PARTNER_TOKEN)</string>
+	<key>PlaudApiKey</key>
+	<string>$(PLAUD_API_KEY)</string>
 	<key>PlaudClientId</key>
 	<string>$(PLAUD_CLIENT_ID)</string>
-	<key>PlaudSecretKey</key>
-	<string>$(PLAUD_SECRET_KEY)</string>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>

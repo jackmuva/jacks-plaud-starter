@@ -460,7 +460,7 @@ final class FileDetailViewController: UIViewController {
 
         guard let path = RecordingStore.shared.resolveAbsolutePath(for: file) else {
             print("[FileDetail] resolveAbsolutePath returned nil, localPath=\(file.localPath ?? "nil")")
-            let alert = UIAlertController(title: "File Not Found", message: "Audio file not found.\nlocalPath: \(file.localPath ?? "nil")", preferredStyle: .alert)
+            let alert = UIAlertController(title: "File Not Found", message: "Audio file not found.", preferredStyle: .alert)
             alert.addAction(UIAlertAction(title: "OK", style: .default))
             present(alert, animated: true)
             return
@@ -541,14 +541,13 @@ final class FileDetailViewController: UIViewController {
     // MARK: - Audio Playback
 
     private func prepareAudioPlayer() {
-        // 同步时已导出 WAV，直接使用
-        guard let wavPath = RecordingStore.shared.resolveAbsolutePath(for: file) else {
+        guard let audioPath = RecordingStore.shared.resolveAbsolutePath(for: file) else {
             print("[FileDetail] Audio file not found, localPath=\(file.localPath ?? "nil")")
             return
         }
 
-        print("[FileDetail] Loading audio: \(wavPath)")
-        audioPlayerView.configure(audioPath: wavPath, duration: file.duration)
+        print("[FileDetail] Loading audio: \(audioPath)")
+        audioPlayerView.configure(audioPath: audioPath, duration: file.duration)
         audioPlayerView.isHidden = false
     }
 

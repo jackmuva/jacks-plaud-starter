@@ -150,18 +150,7 @@ final class RecordingStore {
     func markAsSynced(sessionId: Int, localPath: String, duration: TimeInterval = 0) {
         guard let idx = cache.firstIndex(where: { $0.sessionId == sessionId }) else { return }
         cache[idx].syncedAt = Date()
-
-        // SDK exportAudio(.wav) 直接输出 .wav，无需重命名
-        // 兼容旧的 .opus 文件（如果存在）
-        var finalPath = localPath
-        if localPath.hasSuffix(".opus") {
-            let oggPath = (localPath as NSString).deletingPathExtension + ".ogg"
-            if FileManager.default.fileExists(atPath: localPath) {
-                try? FileManager.default.moveItem(atPath: localPath, toPath: oggPath)
-                finalPath = oggPath
-            }
-        }
-        cache[idx].localPath = (finalPath as NSString).lastPathComponent
+        cache[idx].localPath = (localPath as NSString).lastPathComponent
         if duration > 0 { cache[idx].duration = duration }
         saveToDisk()
     }
@@ -173,14 +162,15 @@ final class RecordingStore {
     }
 
     /// Resolve stored relative filename to absolute path within current sandbox
+    /// Resolve WAV path for playback
     func resolveAbsolutePath(for file: RecordingFile) -> String? {
         guard let name = file.localPath, !name.isEmpty else { return nil }
         let path = docsDir.appendingPathComponent(name).path
         if FileManager.default.fileExists(atPath: path) { return path }
-        // Legacy compatibility: localPath may be an absolute path
         if name.hasPrefix("/"), FileManager.default.fileExists(atPath: name) { return name }
         return nil
     }
+
 
     func audioFilePath(sessionId: Int) -> String {
         docsDir.appendingPathComponent("\(sessionId).ogg").path

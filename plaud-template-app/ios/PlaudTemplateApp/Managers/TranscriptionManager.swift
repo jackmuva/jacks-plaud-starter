@@ -15,7 +15,7 @@ enum TranscriptionState {
 ///
 /// Auth notes (see PARTNER_API_GUIDE.md):
 /// - File upload: Bearer user_access_token
-/// - Transcription submit/query: Bearer partner_access_token or X-Client-Id + X-Client-Api-Key
+/// - Transcription submit/query: X-Client-Id + X-Client-Api-Key
 final class TranscriptionManager {
 
     static let shared = TranscriptionManager()
@@ -170,16 +170,14 @@ final class TranscriptionManager {
         }
     }
 
-    /// Determine auth headers for transcription API (partner_access_token)
+    /// Transcription auth headers (X-Client-Id + X-Client-Api-Key)
     private func resolveTranscriptionAuth(completion: @escaping (Result<[String: String], Error>) -> Void) {
-        api.getPartnerAccessToken { result in
-            switch result {
-            case .success(let token):
-                completion(.success(["Authorization": "Bearer \(token)"]))
-            case .failure(let error):
-                completion(.failure(error))
-            }
+        let headers = api.transcriptionAuthHeaders
+        guard !headers["X-Client-Id"]!.isEmpty, !headers["X-Client-Api-Key"]!.isEmpty else {
+            completion(.failure(APIError.missingCredentials("PLAUD_CLIENT_ID or PLAUD_API_KEY not configured")))
+            return
         }
+        completion(.success(headers))
     }
 
     private func doSubmit(fileURL: String, headers: [String: String]) {

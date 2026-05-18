@@ -350,6 +350,9 @@ typedef SWIFT_ENUM(NSInteger, AudioExportFormat, open) {
 /// 需要知道采样率和声道数才能正确播放
 /// 16kHz, 16-bit, mono
   AudioExportFormatPcm = 0,
+/// MP3 格式 - LAME 编码
+/// 通用播放格式，兼容性最好
+  AudioExportFormatMp3 = 1,
 /// WAV 格式（推荐）
 /// 带头信息的 PCM，可直接播放
 /// 包含采样率、声道数等元数据
@@ -511,6 +514,8 @@ SWIFT_CLASS_PROPERTY(@property (nonatomic, class, readonly, strong) PlaudDeviceA
 + (PlaudDeviceAgent * _Nonnull)shared SWIFT_WARN_UNUSED_RESULT;
 @property (nonatomic, strong) BleDevice * _Nullable recentConnectDevice;
 @property (nonatomic, readonly) NSInteger sceneFlag;
+/// WiFi 快传进行中标记，抑制 BLE 断连时的缓存清除和自动重连
+@property (nonatomic, readonly) BOOL isWiFiTransferActive;
 /// 是否跳过 SDK 权限检查（NotePro 新固件不需要传统的 appKey/appSecret 权限验证）
 @property (nonatomic) BOOL skipPermissionCheck;
 @property (nonatomic, weak) id <PlaudDeviceAgentProtocol> _Nullable delegate;
@@ -556,6 +561,8 @@ SWIFT_CLASS_PROPERTY(@property (nonatomic, class, readonly, strong) PlaudDeviceA
 + (NSString * _Nonnull)getTestAppSecret:(BOOL)beta SWIFT_WARN_UNUSED_RESULT;
 - (void)depairWithClear:(BOOL)clear;
 - (void)setDeviceWiFiWithOpen:(BOOL)open;
+/// 结束 WiFi 快传模式（WiFi 断开后调用，恢复 BLE 正常行为）
+- (void)endWiFiTransfer;
 - (void)setDeviceBindingWithToken:(NSString * _Nonnull)token;
 /// Start scan
 /// @see        stopScan()

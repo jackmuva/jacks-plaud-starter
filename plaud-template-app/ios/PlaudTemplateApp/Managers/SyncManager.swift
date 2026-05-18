@@ -1,5 +1,6 @@
 import Foundation
 import Combine
+import CoreLocation
 import NetworkExtension
 import PlaudDeviceBasicSDK
 import PlaudBleSDK
@@ -83,6 +84,9 @@ final class SyncManager: SyncManagerProtocol {
         PlaudDeviceAgent.shared.getFileList(startSessionId: 0)
     }
 
+    /// 位置权限管理（WiFi 快传需要）
+    private let locationManager = CLLocationManager()
+
     func startWiFiTransfer() {
         // Allow switching from BLE sync to WiFi fast transfer (stop BLE first)
         if case .syncing = stateSubject.value {
@@ -92,6 +96,20 @@ final class SyncManager: SyncManagerProtocol {
         // Skip if already connecting or transferring via WiFi
         if case .wifiConnecting = stateSubject.value { return }
         if case .wifiTransferring = stateSubject.value { return }
+
+        // iOS 13+ 的 NEHotspotConfigurationManager 需要位置权限
+        let status = CLLocationManager.authorizationStatus()
+        if status == .notDetermined {
+            print("[SyncManager] Requesting location permission for WiFi transfer")
+            locationManager.requestWhenInUseAuthorization()
+            // 权限弹窗后用户需要重新触发
+            return
+        }
+        if status == .denied || status == .restricted {
+            print("[SyncManager] Location permission denied, WiFi transfer unavailable")
+            stateSubject.send(.failed("Location permission required for WiFi transfer. Please enable in Settings."))
+            return
+        }
 
         print("[SyncManager] startWiFiTransfer")
         expectingWiFiCallbacks = true
@@ -107,6 +125,7 @@ final class SyncManager: SyncManagerProtocol {
         wifiExportCallback = nil
         PlaudWiFiAgent.shared.disconnect()
         PlaudDeviceAgent.shared.setDeviceWiFi(open: false)
+        PlaudDeviceAgent.shared.endWiFiTransfer()
         connectedWiFiSSID = nil
         wifiPendingFiles.removeAll()
         stateSubject.send(.idle)
@@ -290,8 +309,11 @@ final class SyncManager: SyncManagerProtocol {
 
         PlaudWiFiAgent.shared.bleDevice = BleAgent.shared.bleDevice
         PlaudWiFiAgent.shared.delegate = self
-        print("[SyncManager] SDK connectWifi: \(ssid), bleDevice=\(BleAgent.shared.bleDevice != nil)")
-        PlaudWiFiAgent.shared.connectWifi(ssid, password, 60)
+        print("[SyncManager] SDK connectWifi: ssid=\(ssid), passLen=\(password.count), bleDevice=\(BleAgent.shared.bleDevice != nil)")
+        // 延迟 1 秒等待设备热点完全就绪
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+            PlaudWiFiAgent.shared.connectWifi(ssid, password, 60)
+        }
     }
 
     /// Device WiFi closed
@@ -299,6 +321,7 @@ final class SyncManager: SyncManagerProtocol {
         expectingWiFiCallbacks = false
         isWiFiConnecting = false
         connectedWiFiSSID = nil
+        PlaudDeviceAgent.shared.endWiFiTransfer()
         if case .wifiTransferring = stateSubject.value {
             stateSubject.send(.completed)
         } else if case .wifiConnecting = stateSubject.value {
@@ -324,6 +347,7 @@ final class SyncManager: SyncManagerProtocol {
             wifiExportCallback = nil
             PlaudWiFiAgent.shared.disconnect()
             PlaudDeviceAgent.shared.setDeviceWiFi(open: false)
+            PlaudDeviceAgent.shared.endWiFiTransfer()
             DispatchQueue.main.async { [weak self] in
                 self?.stateSubject.send(.completed)
             }
@@ -399,11 +423,11 @@ final class SyncManager: SyncManagerProtocol {
         }
 
         let outputDir = RecordingStore.shared.audioDir()
-        print("[SyncManager] exportAudio: sessionId=\(next.sessionId), format=wav, dir=\(outputDir)")
+        print("[SyncManager] exportAudio: sessionId=\(next.sessionId), format=mp3, dir=\(outputDir)")
         PlaudDeviceAgent.shared.exportAudio(
             sessionId: next.sessionId,
             outputDir: outputDir,
-            format: .wav,
+            format: .mp3,
             channels: 1,
             callback: self
         )

@@ -286,9 +286,16 @@ extension DeviceManager: PlaudDeviceAgentProtocol {
             hasPopulatedDevice = false
             // During OTA the device disconnects and reboots; SDK handles reconnection internally
             if isOTAInProgress {
-                hasPopulatedDevice = false  // Reset so device info is repopulated after reconnection
+                hasPopulatedDevice = false
                 #if DEBUG
                 print("[DeviceManager] OTA in progress, skipping auto reconnect")
+                #endif
+                return
+            }
+            // WiFi 快传期间 BLE 会断连，不要自动重连（会干扰 WiFi 连接）
+            if PlaudDeviceAgent.shared.isWiFiTransferActive {
+                #if DEBUG
+                print("[DeviceManager] WiFi transfer active, skipping auto reconnect")
                 #endif
                 return
             }
@@ -518,6 +525,7 @@ extension DeviceManager: PlaudDeviceAgentProtocol {
     // MARK: WiFi Fast Transfer
 
     func bleWiFiOpen(_ status: Int, _ wifiName: String, _ wholeName: String, _ wifiPass: String) {
+        print("[DeviceManager] bleWiFiOpen: status=\(status), wifiName=\(wifiName), wholeName=\(wholeName), passLen=\(wifiPass.count)")
         guard status == 0 else { return }
         SyncManager.shared.handleWiFiOpen(ssid: wholeName, password: wifiPass)
     }
