@@ -51,7 +51,7 @@ plaud-sdk-public/
 
 ### Prerequisites
 
-- Xcode 15.0+
+- Xcode 16.0+ (SDK built with Swift 6.0.3, compatible with Xcode 16+)
 - iOS 14.0+ deployment target
 - [Xcodegen](https://github.com/yonaskolb/XcodeGen) (`brew install xcodegen`)
 - A Plaud partner account with User Access Token

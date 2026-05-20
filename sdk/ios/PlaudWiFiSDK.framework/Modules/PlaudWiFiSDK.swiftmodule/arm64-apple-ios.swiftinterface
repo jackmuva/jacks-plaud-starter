@@ -1,7 +1,7 @@
 // swift-interface-format-version: 1.0
-// swift-compiler-version: Apple Swift version 6.2.4 effective-5.10 (swiftlang-6.2.4.1.4 clang-1700.6.4.2)
-// swift-module-flags: -target arm64-apple-ios14.0 -enable-objc-interop -enable-library-evolution -swift-version 5 -enforce-exclusivity=checked -O -enable-experimental-feature DebugDescriptionMacro -module-alias PenBleSDK=PlaudBleSDK -enable-bare-slash-regex -module-name PlaudWiFiSDK
-// swift-module-flags-ignorable: -no-verify-emitted-module-interface -formal-cxx-interoperability-mode=off -interface-compiler-version 6.2.4
+// swift-compiler-version: Apple Swift version 6.0.3 effective-5.10 (swiftlang-6.0.3.1.10 clang-1600.0.30.1)
+// swift-module-flags: -target arm64-apple-ios14.0 -enable-objc-interop -enable-library-evolution -swift-version 5 -enforce-exclusivity=checked -O -enable-bare-slash-regex -module-name PlaudWiFiSDK
+// swift-module-flags-ignorable: -no-verify-emitted-module-interface
 import SystemConfiguration.CaptiveNetwork
 import CommonCrypto
 import CoreLocation
@@ -17,9 +17,7 @@ import _SwiftConcurrencyShims
 @_inheritsConvenienceInitializers @_hasMissingDesignatedInitializers @objc public class Agent : ObjectiveC.NSObject {
   @objc public static let shared: PlaudWiFiSDK.Agent
   @objc public func isDeviceConnect() -> Swift.Bool
-  #if compiler(>=5.3) && $NonescapableTypes
   @objc public func bleDevice() -> PlaudBleSDK.BleDevice?
-  #endif
   @objc public func getFileList(_ uid: Swift.Int, _ sessionId: Swift.Int, _ single: Swift.Bool = false)
   @objc public func syncFile(_ sessionId: Swift.Int, _ start: Swift.Int, _ end: Swift.Int = 0, _ decode: Swift.Bool = false, _ scene: Swift.Int = 1)
   @objc public func stopSyncFile(_ sessionId: Swift.Int, _ scene: Swift.Int = 1)
@@ -59,18 +57,12 @@ import _SwiftConcurrencyShims
   }
   open var listenerQueue: Dispatch.DispatchQueue
   open var listener: PlaudWiFiSDK.NetworkReachabilityManager.Listener?
-  #if compiler(>=5.3) && $NonescapableTypes
   open var flags: SystemConfiguration.SCNetworkReachabilityFlags? {
     get
   }
-  #endif
   open var previousFlags: SystemConfiguration.SCNetworkReachabilityFlags
-  #if compiler(>=5.3) && $NonescapableTypes
   convenience public init?(host: Swift.String)
-  #endif
-  #if compiler(>=5.3) && $NonescapableTypes
   convenience public init?()
-  #endif
   @objc deinit
   @discardableResult
   open func startListening() -> Swift.Bool
@@ -95,9 +87,7 @@ public func == (lhs: PlaudWiFiSDK.NetworkReachabilityManager.NetworkReachability
   @objc func wifiRateFail(_ status: Swift.Int)
   @objc func wifiRate(_ instantRate: Swift.Int, _ averageRate: Swift.Int, _ lossRate: Swift.Double)
   @objc func wifiLogsFail(_ status: Swift.Int)
-  #if compiler(>=5.3) && $NonescapableTypes
   @objc func wifiLogs(_ logData: Foundation.Data?)
-  #endif
   @objc func wifiTips(_ tips: Swift.Int)
   @objc func penRequestOTAData(start: Swift.Int, end: Swift.Int, payloadSize: Swift.Int, uid: Swift.Int, sendRatePPS: Swift.Int)
   @objc func wifiOTAStatus(_ status: Swift.Int, _ uid: Swift.Int)
@@ -129,12 +119,8 @@ public func == (lhs: PlaudWiFiSDK.NetworkReachabilityManager.NetworkReachability
     @objc get
     @objc set
   }
-  #if compiler(>=5.3) && $NonescapableTypes
   @objc public func openReleaseLog(_ opened: Swift.Bool, _ backBlock: ((Swift.String) -> Swift.Void)? = nil)
-  #endif
-  #if compiler(>=5.3) && $NonescapableTypes
   @objc public func openLog(_ opened: Swift.Bool, _ backBlock: ((Swift.String) -> Swift.Void)? = nil)
-  #endif
   @objc public func listenPort(_ ssid: Swift.String, _ overtimeSec: Swift.Int = 30)
   @available(iOS 11.0, *)
   @objc public func connectWifi(_ ssid: Swift.String, _ passphrase: Swift.String, _ overtimeSec: Swift.Int = 60, _ needRetry: Swift.Bool = true)
@@ -165,17 +151,11 @@ extension PlaudWiFiSDK.WiFiAgent {
   @objc dynamic public func appSyncFile(_ sessionId: Swift.Int, _ start: Swift.Int, _ end: Swift.Int = 0, _ scene: Swift.Int = 1)
   @objc dynamic public func appGetFileList(_ uid: Swift.Int, _ sessionId: Swift.Int, _ single: Swift.Bool = false)
   @objc dynamic public func startPushOTA(_ uid: Swift.Int, _ fileSize: Swift.Int, crc: Swift.Int, _ toVersion: Swift.Int)
-  #if compiler(>=5.3) && $NonescapableTypes
   @objc dynamic public func sendFilePackToPen(type: Swift.Int, start: Swift.Int32, len: Swift.Int32, last: Swift.Bool, uid: Swift.Int32, binData: Foundation.Data?)
-  #endif
 }
 extension PlaudWiFiSDK.WiFiAgent {
-  #if compiler(>=5.3) && $NonescapableTypes
   @objc dynamic public func getCurrentWiFiName() -> Swift.String?
-  #endif
-  #if compiler(>=5.3) && $NonescapableTypes
   @objc dynamic public func getCurrentWiFiNameWithRetry(maxRetries: Swift.Int = 3, delay: Foundation.TimeInterval = 1.0) -> Swift.String?
-  #endif
 }
 @_hasMissingDesignatedInitializers public class GCDTool {
   public static let shared: PlaudWiFiSDK.GCDTool
