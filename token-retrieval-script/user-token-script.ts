@@ -2,7 +2,7 @@ import * as dotenv from "dotenv";
 
 dotenv.config();
 
-const BASE_URL = "https://platform-us.plaud.ai";
+const BASE_URL = "https://platform-us.plaud.ai/developer/api";
 
 function requireEnv(key: string): string {
   const val = process.env[key];
@@ -25,9 +25,6 @@ async function main(): Promise<void> {
       "Content-Type": "application/x-www-form-urlencoded",
     },
   });
-
-  console.log("status", partnerRes.status);
-  return;
 
   const partnerData = (await partnerRes.json()) as {
     access_token: string;
