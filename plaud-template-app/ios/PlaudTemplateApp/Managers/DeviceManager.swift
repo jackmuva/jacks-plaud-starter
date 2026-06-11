@@ -68,6 +68,8 @@ final class DeviceManager: NSObject, DeviceManagerProtocol {
     private(set) var isOTAInProgress = false
     private var autoReconnectTimer: Timer?
     private var autoReconnectAttempts = 0
+    /// Bluetooth power-on gate: poll attempts before firing the SDK scan
+    private var scanReadyAttempts = 0
     /// Add Device 流程中禁用自动重连
     var suppressAutoReconnect = false
 
@@ -106,7 +108,34 @@ final class DeviceManager: NSObject, DeviceManagerProtocol {
         cachedBleDevices.removeAll()
         scannedDevicesSubject.send([])
         connectionStateSubject.send(.scanning)
-        PlaudDeviceAgent.shared.startScan()
+        // CoreBluetooth silently drops scanForPeripherals until the central
+        // manager reaches .poweredOn (async after initSDK, and gated on the
+        // first-launch permission prompt). Gate the real scan on that state.
+        scanReadyAttempts = 0
+        attemptScanWhenReady()
+    }
+
+    /// Fires the SDK scan once Bluetooth is powered on, polling up to ~18s to
+    /// cover the cold-start power-on delay and the first-launch permission prompt.
+    private func attemptScanWhenReady() {
+        // Bail if scanning was cancelled (e.g. user navigated away / connected).
+        guard case .scanning = connectionStateSubject.value else { return }
+
+        if BleAgent.shared.isPoweredOn {
+            print("[DEVICE MANAGER] bluetooth powered on, starting SDK scan")
+            PlaudDeviceAgent.shared.startScan()
+            return
+        }
+
+        scanReadyAttempts += 1
+        if scanReadyAttempts > 60 {
+            print("[DEVICE MANAGER] Bluetooth not powered on — scan aborted (check Bluetooth is on / permission granted)")
+            connectionStateSubject.send(.disconnected)
+            return
+        }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) { [weak self] in
+            self?.attemptScanWhenReady()
+        }
     }
 
     func stopScan() {
