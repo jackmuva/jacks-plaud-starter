@@ -29,8 +29,8 @@ targets:
         com.apple.developer.networking.wifi-info: true
     sources:
       - path: PlaudTemplateApp
-    resources:
       - path: ../../sdk/ios/PlaudDeviceBasicSDK.bundle
+        buildPhase: resources
     dependencies:
       - framework: ../../sdk/ios/PlaudDeviceBasicSDK.framework
         embed: true
