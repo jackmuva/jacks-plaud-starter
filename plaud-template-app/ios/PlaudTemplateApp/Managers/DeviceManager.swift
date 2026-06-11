@@ -102,6 +102,7 @@ final class DeviceManager: NSObject, DeviceManagerProtocol {
     // MARK: - Scanning
 
     func startScan() {
+        print("[DEVICE MANAGER] bluetooth scan starting")
         cachedBleDevices.removeAll()
         scannedDevicesSubject.send([])
         connectionStateSubject.send(.scanning)
@@ -247,6 +248,10 @@ extension DeviceManager: PlaudDeviceAgentProtocol {
     // MARK: Scan & Connect
 
     func bleScanResult(bleDevices: [BleDevice]) {
+        print("[DEVICE MANAGER] Ble results")
+        for d in bleDevices {
+            print("[BLE DEVICE] name=\(d.name), sn=\(d.serialNumber), rssi=\(d.rssi)")
+        }
         cachedBleDevices = Dictionary(uniqueKeysWithValues: bleDevices.map { ($0.serialNumber, $0) })
         let devices = bleDevices
             .map { ScannedDevice(name: $0.name, serialNumber: $0.serialNumber, rssi: $0.rssi) }
@@ -269,6 +274,7 @@ extension DeviceManager: PlaudDeviceAgentProtocol {
     }
 
     func bleScanOverTime() {
+        print("[DEVICE MANAGER] ble scanning over time")
         DispatchQueue.main.async { [weak self] in
             guard let self = self else { return }
             if case .scanning = self.connectionStateSubject.value {
