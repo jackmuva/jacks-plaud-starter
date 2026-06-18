@@ -279,7 +279,7 @@ extension DeviceManager: PlaudDeviceAgentProtocol {
     func bleScanResult(bleDevices: [BleDevice]) {
         print("[DEVICE MANAGER] Ble results")
         for d in bleDevices {
-            print("[BLE DEVICE] name=\(d.name), sn=\(d.serialNumber), rssi=\(d.rssi)")
+            print("[BLE DEVICE] name=\(d.name), sn=\(d.serialNumber), rssi=\(d.rssi), bindCode=\(d.bindCode)")
         }
         cachedBleDevices = Dictionary(uniqueKeysWithValues: bleDevices.map { ($0.serialNumber, $0) })
         let devices = bleDevices
@@ -410,6 +410,7 @@ extension DeviceManager: PlaudDeviceAgentProtocol {
     }
 
     func bleBind(sn: String?, status: Int, protVersion: Int, timezone: Int) {
+        print("[DeviceManager] bleBind, status=\(status)")
         guard status == 0, let sn = sn else { return }
         let deviceName = PlaudDeviceAgent.shared.recentConnectDevice?.name ?? sn
         RecordingStore.shared.addPairedDevice(sn: sn, name: deviceName)
