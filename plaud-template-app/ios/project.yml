@@ -1,4 +1,4 @@
-name: JacksMeetingRecorder
+name: PlaudTemplateApp
 options:
   bundleIdPrefix: com.jackmu
   projectFormat: Xcode 14.0
@@ -22,10 +22,6 @@ targets:
     type: application
     platform: iOS
     deploymentTarget: "14.0"
-    settings:
-      base:
-        PRODUCT_BUNDLE_IDENTIFIER: com.jackmu.jacksmeetingrecorder
-        PRODUCT_NAME: Jack's Meeting Recorder
     entitlements:
       path: PlaudTemplateApp/PlaudTemplateApp.entitlements
       properties:
@@ -45,9 +41,9 @@ targets:
     info:
       path: PlaudTemplateApp/Info.plist
       properties:
-        CFBundleDisplayName: Jack's Meeting Recorder
+        CFBundleDisplayName: JacksMeetings
         UILaunchScreen:
-          UIColorName: "systemPurple"
+          UIColorName: "systemBackground"
         UserAccessToken: $(USER_ACCESS_TOKEN)
         PartnerToken: $(PARTNER_TOKEN)
         PlaudClientId: $(PLAUD_CLIENT_ID)
