@@ -1,4 +1,4 @@
-name: PlaudTemplateApp
+name: JacksMeetingRecorder
 options:
   bundleIdPrefix: com.jackmu
   projectFormat: Xcode 14.0
