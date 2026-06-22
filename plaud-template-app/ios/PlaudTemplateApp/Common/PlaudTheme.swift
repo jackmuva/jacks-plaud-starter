@@ -6,9 +6,9 @@ enum PlaudTheme {
     // MARK: - Colors
 
     /// Page background #f9f9f9
-    static let backgroundPrimary = UIColor(hex: "#f9f9f9")
+    static let backgroundPrimary = UIColor(hex: "#E4DDC8")
     /// Primary text #1f1f1f
-    static let labelPrimary = UIColor(hex: "#1f1f1f")
+    static let labelPrimary = UIColor(hex: "#1e293b")
     /// Auxiliary/disabled text #a3a3a3
     static let labelQuaternary = UIColor(hex: "#a3a3a3")
     /// Secondary text #858585
