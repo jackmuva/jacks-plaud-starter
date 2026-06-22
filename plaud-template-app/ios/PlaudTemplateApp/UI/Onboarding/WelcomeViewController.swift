@@ -18,8 +18,7 @@ final class WelcomeViewController: UIViewController {
     }()
 
     private let logoIcon: UIImageView = {
-        let iv = UIImageView(image: UIImage(systemName: "square.grid.2x2"))
-        iv.tintColor = .label
+        let iv = UIImageView(image: UIImage(named: "logo_icon"))
         iv.contentMode = .scaleAspectFit
         iv.translatesAutoresizingMaskIntoConstraints = false
         return iv
@@ -28,7 +27,7 @@ final class WelcomeViewController: UIViewController {
     /// App name label (B2B customers replace with their own brand name)
     private let appNameLabel: UILabel = {
         let l = UILabel()
-        l.text = "App name"
+        l.text = "Jack's Meeting Recorder"
         l.font = PlaudTheme.largeTitle()
         l.textColor = PlaudTheme.labelPrimary
         l.textAlignment = .center
