@@ -22,6 +22,9 @@ targets:
     type: application
     platform: iOS
     deploymentTarget: "14.0"
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.jackmu.jacksmeetingrecorder
     entitlements:
       path: PlaudTemplateApp/PlaudTemplateApp.entitlements
       properties:
@@ -41,6 +44,7 @@ targets:
     info:
       path: PlaudTemplateApp/Info.plist
       properties:
+        CFBundleDisplayName: Jack's Meeting Recorder
         UILaunchScreen:
           UIColorName: "systemBackground"
         UserAccessToken: $(USER_ACCESS_TOKEN)
