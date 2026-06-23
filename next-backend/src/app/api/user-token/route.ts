@@ -33,6 +33,7 @@ export async function POST(req: Request) {
 
   try {
     const token = await mintUserToken(userId);
+    console.log("successfully retrieved token for ", userId);
     return NextResponse.json(token);
   } catch (err) {
     if (err instanceof PlaudApiError) {
