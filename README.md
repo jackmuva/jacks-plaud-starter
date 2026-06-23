@@ -63,7 +63,9 @@ Edit `plaud-template-app/ios/PartnerConfig.xcconfig`:
 ```xcconfig
 # Backend that mints per-user access tokens (POST /api/user-token).
 # The app fetches the SDK token from here at runtime instead of hardcoding it.
-USER_TOKEN_BACKEND_URL = https://your-backend.example.com
+# Bare host only — NO scheme. xcconfig treats "//" as a comment, so a value
+# like "https://host" gets truncated. The app prepends https:// at runtime.
+USER_TOKEN_BACKEND_URL = your-backend.example.com
 
 # Required for Transcription API (optional, not needed for device features)
 PLAUD_CLIENT_ID = your-client-id
@@ -78,7 +80,7 @@ USER_ACCESS_TOKEN = your-jwt-token
 > **How the token flow works:** The app uses a stable per-device id (`identifierForVendor`) as the `user_id`, `POST`s it to `USER_TOKEN_BACKEND_URL/api/user-token`, and uses the returned per-user JWT to initialize the SDK. The token is re-minted on each launch, so it never goes stale. See `next-backend/` for a reference backend implementation. If `USER_TOKEN_BACKEND_URL` is left unset, the app falls back to the bundled `USER_ACCESS_TOKEN`.
 >
 > **Where to get these:**
-> - `USER_TOKEN_BACKEND_URL`: Deploy a backend that mints user tokens (see `next-backend/`, which calls `POST /open/partner/users/access-token`). Use a deployed HTTPS URL — the template app runs on a physical device and can't reach `localhost`.
+> - `USER_TOKEN_BACKEND_URL`: Deploy a backend that mints user tokens (see `next-backend/`, which calls `POST /open/partner/users/access-token`). Enter the bare host (no `https://`, no path) — the app serves it over HTTPS and appends `/api/user-token` itself. Use a deployed host — the template app runs on a physical device and can't reach `localhost`.
 > - `PLAUD_CLIENT_ID` + `PLAUD_API_KEY`: Create in the [Plaud Developer Portal](https://platform.plaud.ai/developer/portal). See the QUICKSTART guide for details.
 
 ### 2. Update Project Settings

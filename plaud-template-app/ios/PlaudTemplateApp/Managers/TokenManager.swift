@@ -19,11 +19,21 @@ final class TokenManager {
 
     private init() {}
 
-    /// Backend base URL configured via `UserTokenBackendURL` (Info.plist),
-    /// with any trailing slash trimmed.
+    /// Backend base URL configured via `UserTokenBackendURL` (Info.plist).
+    ///
+    /// The config value is a bare host (e.g. `your-backend.vercel.app`) — `//`
+    /// can't be used in an xcconfig value because it starts a comment. Any scheme
+    /// the user does include is stripped, then `https://` is prepended and any
+    /// trailing slash trimmed.
     var backendURL: String {
-        let raw = Bundle.main.object(forInfoDictionaryKey: "UserTokenBackendURL") as? String ?? ""
-        return raw.hasSuffix("/") ? String(raw.dropLast()) : raw
+        var raw = (Bundle.main.object(forInfoDictionaryKey: "UserTokenBackendURL") as? String ?? "")
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !raw.isEmpty else { return "" }
+        if let range = raw.range(of: "://") {
+            raw = String(raw[range.upperBound...])
+        }
+        if raw.hasSuffix("/") { raw = String(raw.dropLast()) }
+        return raw.isEmpty ? "" : "https://\(raw)"
     }
 
     /// Whether a real backend URL is configured (not empty / placeholder).
