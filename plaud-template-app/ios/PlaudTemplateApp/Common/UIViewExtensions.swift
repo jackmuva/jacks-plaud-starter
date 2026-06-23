@@ -10,14 +10,3 @@ extension UIView {
         layer.add(anim, forKey: "shake")
     }
 }
-
-extension String {
-    /// JWT base64url -> standard base64 (with padding)
-    func base64Padded() -> String {
-        var s = self.replacingOccurrences(of: "-", with: "+")
-                     .replacingOccurrences(of: "_", with: "/")
-        let remainder = s.count % 4
-        if remainder > 0 { s += String(repeating: "=", count: 4 - remainder) }
-        return s
-    }
-}

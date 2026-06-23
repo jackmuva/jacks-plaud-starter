@@ -61,18 +61,24 @@ plaud-sdk-public/
 Edit `plaud-template-app/ios/PartnerConfig.xcconfig`:
 
 ```xcconfig
-# Required for SDK initialization
-USER_ACCESS_TOKEN = your-jwt-token
+# Backend that mints per-user access tokens (POST /api/user-token).
+# The app fetches the SDK token from here at runtime instead of hardcoding it.
+USER_TOKEN_BACKEND_URL = https://your-backend.example.com
 
 # Required for Transcription API (optional, not needed for device features)
 PLAUD_CLIENT_ID = your-client-id
 PLAUD_API_KEY = your-api-key
+
+# [Optional fallback] Hardcoded SDK token, only used if no backend is configured.
+USER_ACCESS_TOKEN = your-jwt-token
 ```
 
 > **Tip:** Create `plaud-template-app/ios/PartnerConfig.local.xcconfig` with your real credentials — it's gitignored and will override the placeholder values.
 >
+> **How the token flow works:** The app uses a stable per-device id (`identifierForVendor`) as the `user_id`, `POST`s it to `USER_TOKEN_BACKEND_URL/api/user-token`, and uses the returned per-user JWT to initialize the SDK. The token is re-minted on each launch, so it never goes stale. See `next-backend/` for a reference backend implementation. If `USER_TOKEN_BACKEND_URL` is left unset, the app falls back to the bundled `USER_ACCESS_TOKEN`.
+>
 > **Where to get these:**
-> - `USER_ACCESS_TOKEN`: Your backend calls `POST /open/partner/users/access-token` to obtain this per-user JWT.
+> - `USER_TOKEN_BACKEND_URL`: Deploy a backend that mints user tokens (see `next-backend/`, which calls `POST /open/partner/users/access-token`). Use a deployed HTTPS URL — the template app runs on a physical device and can't reach `localhost`.
 > - `PLAUD_CLIENT_ID` + `PLAUD_API_KEY`: Create in the [Plaud Developer Portal](https://platform.plaud.ai/developer/portal). See the QUICKSTART guide for details.
 
 ### 2. Update Project Settings
@@ -220,7 +226,8 @@ PlaudTemplateApp/
 
 | xcconfig Key | Info.plist Key | Usage |
 |-------------|---------------|-------|
-| `USER_ACCESS_TOKEN` | `UserAccessToken` | SDK initialization (required) |
+| `USER_TOKEN_BACKEND_URL` | `UserTokenBackendURL` | Backend that mints the SDK token at runtime (`POST /api/user-token`) |
+| `USER_ACCESS_TOKEN` | `UserAccessToken` | Optional fallback SDK token (used only when no backend is configured) |
 | `PLAUD_CLIENT_ID` | `PlaudClientId` | Transcription API (`X-Client-Id` header) |
 | `PLAUD_API_KEY` | `PlaudApiKey` | Transcription API (`X-Client-Api-Key` header) |
 

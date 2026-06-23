@@ -12,9 +12,14 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         guard let windowScene = scene as? UIWindowScene else { return }
         window = UIWindow(windowScene: windowScene)
         if !RecordingStore.shared.pairedDeviceSNs.isEmpty,
-           RecordingStore.shared.userId != nil {
-            let userId = RecordingStore.shared.userId!
-            DeviceManager.shared.configure(userId: userId)
+           let userId = RecordingStore.shared.userId {
+            // Best-effort: re-mint the token and init the SDK. On failure the
+            // next auto-reconnect attempt retries; the UI still shows.
+            DeviceManager.shared.configure(userId: userId) { result in
+                if case .failure(let error) = result {
+                    print("[SceneDelegate] configure failed: \(error.localizedDescription)")
+                }
+            }
             window?.rootViewController = MainTabBarController()
         } else {
             window?.rootViewController = UINavigationController(rootViewController: WelcomeViewController())

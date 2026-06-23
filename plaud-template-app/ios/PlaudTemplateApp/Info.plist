@@ -66,5 +66,7 @@
 	</array>
 	<key>UserAccessToken</key>
 	<string>$(USER_ACCESS_TOKEN)</string>
+	<key>UserTokenBackendURL</key>
+	<string>$(USER_TOKEN_BACKEND_URL)</string>
 </dict>
 </plist>

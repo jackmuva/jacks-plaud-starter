@@ -14,8 +14,9 @@ protocol DeviceManagerProtocol: AnyObject {
     /// BLE scan results (continuously updated during scanning)
     var scannedDevicesPublisher: AnyPublisher<[ScannedDevice], Never> { get }
 
-    /// Configure SDK, call after user login (with userId)
-    func configure(userId: String)
+    /// Configure SDK, call after user login (with userId). Fetches the user
+    /// access token from the backend before initializing the SDK.
+    func configure(userId: String, completion: @escaping (Result<Void, Error>) -> Void)
     func startScan()
     func stopScan()
     func connect(_ device: ScannedDevice, userId: String)
@@ -73,8 +74,12 @@ final class DeviceManager: NSObject, DeviceManagerProtocol {
     /// Add Device 流程中禁用自动重连
     var suppressAutoReconnect = false
 
-    /// User Access Token — prefers UserAccessToken, falls back to legacy PartnerToken
+    /// User Access Token — prefers the token minted from the backend at runtime,
+    /// then the bundled UserAccessToken, then the legacy PartnerToken.
     var userAccessToken: String {
+        if let minted = TokenManager.shared.currentToken, !minted.isEmpty {
+            return minted
+        }
         if let token = Bundle.main.object(forInfoDictionaryKey: "UserAccessToken") as? String, !token.isEmpty {
             return token
         }
@@ -93,12 +98,39 @@ final class DeviceManager: NSObject, DeviceManagerProtocol {
 
     private let customDomain = "platform-us.plaud.ai"
 
-    func configure(userId: String) {
-        RecordingStore.shared.userId = userId
-        PlaudDeviceAgent.shared.initSDK(
-            userAccessToken: userAccessToken,
-            customDomain: customDomain
-        )
+    func configure(userId: String, completion: @escaping (Result<Void, Error>) -> Void) {
+        // Legacy fallback: when no backend is configured, use the bundled
+        // USER_ACCESS_TOKEN directly (backward compatibility).
+        guard TokenManager.shared.isConfigured else {
+            RecordingStore.shared.userId = userId
+            let token = userAccessToken  // resolves to the bundled token here
+            guard !token.isEmpty, token != "YOUR_USER_ACCESS_TOKEN_HERE" else {
+                print("[DeviceManager] ❌ user token NOT procured: no backend URL and no bundled USER_ACCESS_TOKEN")
+                completion(.failure(APIError.missingCredentials(
+                    "Set USER_TOKEN_BACKEND_URL (or a bundled USER_ACCESS_TOKEN) in PartnerConfig.local.xcconfig.")))
+                return
+            }
+            print("[DeviceManager] ✅ using bundled USER_ACCESS_TOKEN (no backend configured)")
+            PlaudDeviceAgent.shared.initSDK(userAccessToken: token, customDomain: customDomain)
+            completion(.success(()))
+            return
+        }
+
+        TokenManager.shared.fetchUserToken(userId: userId) { [weak self] result in
+            guard let self = self else { return }
+            switch result {
+            case .success:
+                RecordingStore.shared.userId = userId
+                // userAccessToken now resolves to the freshly-minted token.
+                PlaudDeviceAgent.shared.initSDK(
+                    userAccessToken: self.userAccessToken,
+                    customDomain: self.customDomain
+                )
+                DispatchQueue.main.async { completion(.success(())) }
+            case .failure(let error):
+                DispatchQueue.main.async { completion(.failure(error)) }
+            }
+        }
     }
 
     // MARK: - Scanning
