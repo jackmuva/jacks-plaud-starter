@@ -41,8 +41,10 @@ targets:
     info:
       path: PlaudTemplateApp/Info.plist
       properties:
+        CFBundleDisplayName: JacksMeetings
         UILaunchScreen:
           UIColorName: "systemBackground"
+        UserTokenBackendURL: $(USER_TOKEN_BACKEND_URL)
         UserAccessToken: $(USER_ACCESS_TOKEN)
         PartnerToken: $(PARTNER_TOKEN)
         PlaudClientId: $(PLAUD_CLIENT_ID)
