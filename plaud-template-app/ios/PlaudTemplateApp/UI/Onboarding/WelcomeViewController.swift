@@ -100,25 +100,40 @@ final class WelcomeViewController: UIViewController {
     // MARK: - Actions
 
     @objc private func getStartedTapped() {
-        // Extract sub from partnerToken JWT as userId
-        let userId = Self.extractUserId()
-        RecordingStore.shared.userId = userId
-        DeviceManager.shared.configure(userId: userId)
-        pushScanning()
+        // Use a stable per-device id; the SDK token is minted from the backend.
+        let userId = RecordingStore.shared.resolveUserId()
+
+        getStartedButton.isEnabled = false
+        let spinner = UIActivityIndicatorView(style: .medium)
+        spinner.startAnimating()
+        spinner.translatesAutoresizingMaskIntoConstraints = false
+        view.addSubview(spinner)
+        NSLayoutConstraint.activate([
+            spinner.centerXAnchor.constraint(equalTo: getStartedButton.centerXAnchor),
+            spinner.bottomAnchor.constraint(equalTo: getStartedButton.topAnchor, constant: -16),
+        ])
+
+        DeviceManager.shared.configure(userId: userId) { [weak self] result in
+            guard let self = self else { return }
+            spinner.removeFromSuperview()
+            self.getStartedButton.isEnabled = true
+            switch result {
+            case .success:
+                self.pushScanning()
+            case .failure(let error):
+                self.presentError(error)
+            }
+        }
     }
 
-    /// Parse the sub field from partnerToken JWT payload as userId
-    private static func extractUserId() -> String {
-        let token = DeviceManager.shared.partnerToken
-        let parts = token.split(separator: ".")
-        guard parts.count >= 2,
-              let data = Data(base64Encoded: String(parts[1]).base64Padded()),
-              let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-              let sub = json["sub"] as? String
-        else {
-            return UUID().uuidString
-        }
-        return sub
+    private func presentError(_ error: Error) {
+        let alert = UIAlertController(
+            title: "Couldn’t get started",
+            message: "Failed to obtain an access token. \(error.localizedDescription)",
+            preferredStyle: .alert
+        )
+        alert.addAction(UIAlertAction(title: "OK", style: .default))
+        present(alert, animated: true)
     }
 
     private func pushScanning() {

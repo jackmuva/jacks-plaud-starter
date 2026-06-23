@@ -1,4 +1,5 @@
 import Foundation
+import UIKit
 
 /// Local data persistence: recording file metadata (JSON file) + user settings (UserDefaults)
 final class RecordingStore {
@@ -89,6 +90,16 @@ final class RecordingStore {
     var userId: String? {
         get { UserDefaults.standard.string(forKey: Keys.userId) }
         set { UserDefaults.standard.set(newValue, forKey: Keys.userId) }
+    }
+
+    /// Get-or-create a stable per-device user id. Seeded from the vendor
+    /// identifier (stable across launches; resets if all the vendor's apps are
+    /// removed), with a generated UUID fallback. Persisted so it never changes.
+    func resolveUserId() -> String {
+        if let existing = userId, !existing.isEmpty { return existing }
+        let id = UIDevice.current.identifierForVendor?.uuidString ?? UUID().uuidString
+        userId = id
+        return id
     }
 
     var isAutoSyncEnabled: Bool {

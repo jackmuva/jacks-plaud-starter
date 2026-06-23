@@ -35,7 +35,10 @@ final class MockDeviceManager: DeviceManagerProtocol {
         connectionStateSubject.send(connected ? .connected : .disconnected)
     }
 
-    func configure(userId: String) {}
+    func configure(userId: String, completion: @escaping (Result<Void, Error>) -> Void) {
+        RecordingStore.shared.userId = userId
+        completion(.success(()))
+    }
     func startScan() {}
     func stopScan() {}
     func connect(_ device: ScannedDevice, userId: String) {}

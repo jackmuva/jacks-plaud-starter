@@ -29,8 +29,13 @@ final class PlaudAPIService {
         Bundle.main.object(forInfoDictionaryKey: "PlaudApiKey") as? String ?? ""
     }
 
-    /// User Access Token (for SDK endpoints and file upload)
+    /// User Access Token (for SDK endpoints and file upload).
+    /// Prefers the token minted from the backend at runtime, then the bundled
+    /// UserAccessToken, then the legacy PartnerToken.
     var userAccessToken: String {
+        if let minted = TokenManager.shared.currentToken, !minted.isEmpty {
+            return minted
+        }
         if let token = Bundle.main.object(forInfoDictionaryKey: "UserAccessToken") as? String, !token.isEmpty {
             return token
         }
