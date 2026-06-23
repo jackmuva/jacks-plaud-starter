@@ -7,7 +7,13 @@
 // Or edit the values below directly (not recommended for git).
 // ============================================================
 
-// User Access Token (required for SDK device authentication and file upload)
+// Backend base URL that mints per-user access tokens (POST /api/user-token).
+// Use a deployed HTTPS URL (e.g. https://your-backend.vercel.app). The app
+// fetches the user access token from here at runtime instead of hardcoding it.
+USER_TOKEN_BACKEND_URL = https://YOUR_BACKEND_HERE
+
+// [Optional fallback] Hardcoded User Access Token. Only used if the backend
+// fetch above is not configured. Leave as-is when using USER_TOKEN_BACKEND_URL.
 USER_ACCESS_TOKEN = YOUR_USER_ACCESS_TOKEN_HERE
 
 // Client ID & API Key (required for transcription API)
