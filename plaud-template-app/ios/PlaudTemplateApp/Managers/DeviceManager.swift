@@ -601,5 +601,47 @@ extension DeviceManager: PlaudDeviceAgentProtocol {
     func bleWiFiClose(_ status: Int) {
         SyncManager.shared.handleWiFiClose()
     }
+
+    // MARK: "Sync when idle" WiFi config
+
+    func onWifiSyncEnabled(_ value: Int) {
+        SyncManager.shared.handleIdleSyncEnabled(value)
+    }
+
+    func onWifiSyncListReceived(list: [UInt32]) {
+        SyncManager.shared.handleIdleSyncListReceived(list)
+    }
+
+    func onWifiSyncConfigReceived(index: UInt32, ssid: String, password: String) {
+        SyncManager.shared.handleIdleSyncConfigReceived(index: index, ssid: ssid, password: password)
+    }
+
+    func onWifiSyncConfigSet(result: Int) {
+        SyncManager.shared.handleIdleSyncConfigSet(result: result)
+    }
+
+    func onWifiSyncDeleteResult(result: Int) {
+        SyncManager.shared.handleIdleSyncDeleteResult(result: result)
+    }
+
+    func onWifiSyncTestStarted(index: UInt32) {
+        SyncManager.shared.handleIdleSyncTestStarted(index: index)
+    }
+
+    func onWifiSyncTestResult(index: UInt32, result: Int, rawCode: Int) {
+        SyncManager.shared.handleIdleSyncTestResult(index: index, result: result, rawCode: rawCode)
+    }
+
+    func onWifiSyncWillStart(seconds: Int) {
+        SyncManager.shared.handleIdleSyncWillStart(seconds: seconds)
+    }
+
+    func onWifiSyncUrl(url: String) {
+        SyncManager.shared.handleIdleSyncUrl(url)
+    }
+
+    func onWifiRssiRequestConfirmed(status: Int) {
+        print("[DeviceManager] onWifiRssiRequestConfirmed: status=\(status)")
+    }
 }
 

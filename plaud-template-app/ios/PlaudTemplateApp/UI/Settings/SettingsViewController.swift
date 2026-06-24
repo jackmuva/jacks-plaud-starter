@@ -27,6 +27,9 @@ final class SettingsViewController: UIViewController {
     private let syncCard = UIView()
     private let syncToggle = PlaudToggle()
 
+    // Card: Sync When Idle (device-side scheduled WiFi sync)
+    private let idleSyncCard = UIView()
+
     // Card 2: Device Firmware
     private let firmwareCard = UIView()
     private let fwVersionLabel = UILabel()
@@ -77,9 +80,14 @@ final class SettingsViewController: UIViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
         view.backgroundColor = PlaudTheme.backgroundPrimary
-        navigationController?.setNavigationBarHidden(true, animated: false)
         setupLayout()
         setupBindings()
+    }
+
+    override func viewWillAppear(_ animated: Bool) {
+        super.viewWillAppear(animated)
+        // Re-hide the bar after returning from a pushed screen (e.g. Sync When Idle)
+        navigationController?.setNavigationBarHidden(true, animated: animated)
     }
 
     // MARK: - Layout
@@ -93,9 +101,10 @@ final class SettingsViewController: UIViewController {
         contentView.translatesAutoresizingMaskIntoConstraints = false
         scrollView.addSubview(contentView)
 
+        setupIdleSyncCard()
         setupFirmwareCard()
 
-        [titleLabel, firmwareCard, signOutButton].forEach { contentView.addSubview($0) }
+        [titleLabel, idleSyncCard, firmwareCard, signOutButton].forEach { contentView.addSubview($0) }
 
         NSLayoutConstraint.activate([
             scrollView.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor),
@@ -112,7 +121,11 @@ final class SettingsViewController: UIViewController {
             titleLabel.topAnchor.constraint(equalTo: contentView.topAnchor, constant: 16),
             titleLabel.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 24),
 
-            firmwareCard.topAnchor.constraint(equalTo: titleLabel.bottomAnchor, constant: 40),
+            idleSyncCard.topAnchor.constraint(equalTo: titleLabel.bottomAnchor, constant: 40),
+            idleSyncCard.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 24),
+            idleSyncCard.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -24),
+
+            firmwareCard.topAnchor.constraint(equalTo: idleSyncCard.bottomAnchor, constant: 12),
             firmwareCard.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 24),
             firmwareCard.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -24),
 
@@ -170,6 +183,58 @@ final class SettingsViewController: UIViewController {
             syncToggle.trailingAnchor.constraint(equalTo: syncCard.trailingAnchor, constant: -16),
             syncToggle.widthAnchor.constraint(equalToConstant: 48),
             syncToggle.heightAnchor.constraint(equalToConstant: 26),
+        ])
+    }
+
+    private func setupIdleSyncCard() {
+        idleSyncCard.backgroundColor = .white
+        idleSyncCard.layer.cornerRadius = 12
+        idleSyncCard.translatesAutoresizingMaskIntoConstraints = false
+        idleSyncCard.isUserInteractionEnabled = true
+        idleSyncCard.addGestureRecognizer(
+            UITapGestureRecognizer(target: self, action: #selector(idleSyncTapped))
+        )
+
+        let icon = UIImageView(image: UIImage(named: "icon_cloud_sync"))
+        icon.contentMode = .scaleAspectFit
+        icon.translatesAutoresizingMaskIntoConstraints = false
+
+        let titleLbl = UILabel()
+        titleLbl.text = "Sync When Idle"
+        titleLbl.font = .systemFont(ofSize: 14)
+        titleLbl.textColor = .black
+        titleLbl.translatesAutoresizingMaskIntoConstraints = false
+
+        let subtitleLbl = UILabel()
+        subtitleLbl.text = "Auto-upload over WiFi while idle"
+        subtitleLbl.font = .systemFont(ofSize: 13)
+        subtitleLbl.textColor = UIColor(hex: "#7A7A7A")
+        subtitleLbl.translatesAutoresizingMaskIntoConstraints = false
+
+        let chevron = UIImageView(image: UIImage(systemName: "chevron.right"))
+        chevron.tintColor = UIColor(hex: "#C4C4C4")
+        chevron.contentMode = .scaleAspectFit
+        chevron.translatesAutoresizingMaskIntoConstraints = false
+
+        [icon, titleLbl, subtitleLbl, chevron].forEach { idleSyncCard.addSubview($0) }
+
+        NSLayoutConstraint.activate([
+            icon.leadingAnchor.constraint(equalTo: idleSyncCard.leadingAnchor, constant: 16),
+            icon.centerYAnchor.constraint(equalTo: idleSyncCard.centerYAnchor),
+            icon.widthAnchor.constraint(equalToConstant: 32),
+            icon.heightAnchor.constraint(equalToConstant: 32),
+
+            titleLbl.topAnchor.constraint(equalTo: idleSyncCard.topAnchor, constant: 16),
+            titleLbl.leadingAnchor.constraint(equalTo: icon.trailingAnchor, constant: 12),
+
+            subtitleLbl.topAnchor.constraint(equalTo: titleLbl.bottomAnchor, constant: 2),
+            subtitleLbl.leadingAnchor.constraint(equalTo: icon.trailingAnchor, constant: 12),
+            subtitleLbl.bottomAnchor.constraint(equalTo: idleSyncCard.bottomAnchor, constant: -16),
+
+            chevron.trailingAnchor.constraint(equalTo: idleSyncCard.trailingAnchor, constant: -16),
+            chevron.centerYAnchor.constraint(equalTo: idleSyncCard.centerYAnchor),
+            chevron.widthAnchor.constraint(equalToConstant: 14),
+            chevron.heightAnchor.constraint(equalToConstant: 14),
         ])
     }
 
@@ -278,6 +343,11 @@ final class SettingsViewController: UIViewController {
             }
         }
         present(sheet, animated: true)
+    }
+
+    @objc private func idleSyncTapped() {
+        let vc = IdleSyncConfigViewController(syncManager: SyncManager.shared)
+        navigationController?.pushViewController(vc, animated: true)
     }
 
     @objc private func signOutTapped() {

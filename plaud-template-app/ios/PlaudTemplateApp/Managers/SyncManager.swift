@@ -13,6 +13,8 @@ protocol SyncManagerProtocol: AnyObject {
     var statePublisher: AnyPublisher<SyncState, Never> { get }
     /// Local file list (sorted by time descending)
     var filesPublisher: AnyPublisher<[RecordingFile], Never> { get }
+    /// Device-side "Sync when idle" WiFi config state
+    var idleSyncStatePublisher: AnyPublisher<IdleSyncState, Never> { get }
 
     /// Silently fetch file list (no banner, no download)
     func fetchFileList()
@@ -30,6 +32,19 @@ protocol SyncManagerProtocol: AnyObject {
         _ file: RecordingFile,
         completion: @escaping (Result<URL, Error>) -> Void
     )
+
+    // MARK: "Sync when idle" device-side WiFi config
+
+    /// Load current enable flag + configured network list from the device
+    func loadIdleSyncConfig()
+    /// Enable/disable device-side idle sync
+    func setIdleSyncEnabled(_ enabled: Bool)
+    /// Add (or update) a WiFi network the device may use to auto-sync
+    func addIdleSyncNetwork(ssid: String, password: String)
+    /// Remove a configured network by its device-side slot index
+    func deleteIdleSyncNetwork(index: UInt32)
+    /// Ask the device to test connectivity for a configured network
+    func testIdleSyncNetwork(index: UInt32)
 }
 
 // MARK: - Real Implementation
@@ -46,9 +61,13 @@ final class SyncManager: SyncManagerProtocol {
     var filesPublisher: AnyPublisher<[RecordingFile], Never> {
         filesSubject.eraseToAnyPublisher()
     }
+    var idleSyncStatePublisher: AnyPublisher<IdleSyncState, Never> {
+        idleSyncStateSubject.eraseToAnyPublisher()
+    }
 
     private let stateSubject = CurrentValueSubject<SyncState, Never>(.idle)
     private let filesSubject: CurrentValueSubject<[RecordingFile], Never>
+    private let idleSyncStateSubject = CurrentValueSubject<IdleSyncState, Never>(IdleSyncState())
 
     // Download queue state
     private var pendingDownloads: [BleFile] = []
@@ -168,6 +187,131 @@ final class SyncManager: SyncManagerProtocol {
             channels: 1,
             callback: callback
         )
+    }
+
+    // MARK: - "Sync when idle" WiFi Config
+
+    func loadIdleSyncConfig() {
+        print("[SyncManager] loadIdleSyncConfig")
+        PlaudDeviceAgent.shared.getWifiSyncEnable()
+        PlaudDeviceAgent.shared.getWifiSyncList()
+    }
+
+    func setIdleSyncEnabled(_ enabled: Bool) {
+        print("[SyncManager] setIdleSyncEnabled: \(enabled)")
+        // Optimistic update; device confirms via onWifiSyncEnabled
+        mutateIdleSyncState { $0.enabled = enabled }
+        PlaudDeviceAgent.shared.setWifiSyncEnable(value: enabled ? 1 : 0)
+    }
+
+    func addIdleSyncNetwork(ssid: String, password: String) {
+        // Pick the lowest unused slot index (device assigns no index for us).
+        let used = Set(idleSyncStateSubject.value.networks.map { $0.index })
+        var index: UInt32 = 0
+        while used.contains(index) { index += 1 }
+        print("[SyncManager] addIdleSyncNetwork: ssid=\(ssid), index=\(index)")
+        // operation 0 = add/update (assumption — verify via onWifiSyncConfigSet result)
+        PlaudDeviceAgent.shared.setWifiSyncConfig(operation: 0, wifiIndex: index, ssid: ssid, password: password)
+    }
+
+    func deleteIdleSyncNetwork(index: UInt32) {
+        print("[SyncManager] deleteIdleSyncNetwork: index=\(index)")
+        PlaudDeviceAgent.shared.deleteWifiSyncConfig(wifiIndices: [index])
+    }
+
+    func testIdleSyncNetwork(index: UInt32) {
+        print("[SyncManager] testIdleSyncNetwork: index=\(index)")
+        PlaudDeviceAgent.shared.setWifiSyncTest(wifiIndex: index)
+    }
+
+    /// Thread-safe mutation of the idle-sync state, always published on main.
+    private func mutateIdleSyncState(_ transform: @escaping (inout IdleSyncState) -> Void) {
+        DispatchQueue.main.async { [weak self] in
+            guard let self = self else { return }
+            var state = self.idleSyncStateSubject.value
+            transform(&state)
+            self.idleSyncStateSubject.send(state)
+        }
+    }
+
+    // MARK: Idle-sync callbacks (forwarded by DeviceManager)
+
+    func handleIdleSyncEnabled(_ value: Int) {
+        print("[SyncManager] onWifiSyncEnabled: \(value)")
+        mutateIdleSyncState { $0.enabled = (value != 0) }
+    }
+
+    func handleIdleSyncListReceived(_ list: [UInt32]) {
+        print("[SyncManager] onWifiSyncListReceived: \(list)")
+        mutateIdleSyncState { state in
+            // Rebuild network list, preserving any known ssid/test status.
+            let existing = Dictionary(uniqueKeysWithValues: state.networks.map { ($0.index, $0) })
+            state.networks = list.map { idx in
+                existing[idx] ?? IdleSyncNetwork(index: idx, ssid: "WiFi \(idx)", hasPassword: false)
+            }
+        }
+        // Fetch SSID/password detail for each configured slot.
+        for idx in list {
+            PlaudDeviceAgent.shared.getWifiSyncConfig(wifiIndex: idx)
+        }
+    }
+
+    func handleIdleSyncConfigReceived(index: UInt32, ssid: String, password: String) {
+        print("[SyncManager] onWifiSyncConfigReceived: index=\(index), ssid=\(ssid)")
+        mutateIdleSyncState { state in
+            if let i = state.networks.firstIndex(where: { $0.index == index }) {
+                state.networks[i].ssid = ssid
+                state.networks[i].hasPassword = !password.isEmpty
+            } else {
+                state.networks.append(IdleSyncNetwork(index: index, ssid: ssid, hasPassword: !password.isEmpty))
+            }
+        }
+    }
+
+    func handleIdleSyncConfigSet(result: Int) {
+        print("[SyncManager] onWifiSyncConfigSet: result=\(result)")
+        if result == 0 {
+            mutateIdleSyncState { $0.lastError = nil }
+            PlaudDeviceAgent.shared.getWifiSyncList()
+        } else {
+            mutateIdleSyncState { $0.lastError = "Failed to save network (code \(result))" }
+        }
+    }
+
+    func handleIdleSyncDeleteResult(result: Int) {
+        print("[SyncManager] onWifiSyncDeleteResult: result=\(result)")
+        if result == 0 {
+            mutateIdleSyncState { $0.lastError = nil }
+            PlaudDeviceAgent.shared.getWifiSyncList()
+        } else {
+            mutateIdleSyncState { $0.lastError = "Failed to delete network (code \(result))" }
+        }
+    }
+
+    func handleIdleSyncTestStarted(index: UInt32) {
+        print("[SyncManager] onWifiSyncTestStarted: index=\(index)")
+        mutateIdleSyncState { state in
+            if let i = state.networks.firstIndex(where: { $0.index == index }) {
+                state.networks[i].testStatus = .testing
+            }
+        }
+    }
+
+    func handleIdleSyncTestResult(index: UInt32, result: Int, rawCode: Int) {
+        print("[SyncManager] onWifiSyncTestResult: index=\(index), result=\(result), rawCode=\(rawCode)")
+        mutateIdleSyncState { state in
+            if let i = state.networks.firstIndex(where: { $0.index == index }) {
+                state.networks[i].testStatus = (result == 0) ? .passed : .failed
+            }
+        }
+    }
+
+    func handleIdleSyncWillStart(seconds: Int) {
+        print("[SyncManager] onWifiSyncWillStart: in \(seconds)s")
+    }
+
+    func handleIdleSyncUrl(_ url: String) {
+        print("[SyncManager] onWifiSyncUrl: \(url)")
     }
 
     // MARK: - Internal Callbacks (forwarded by DeviceManager)

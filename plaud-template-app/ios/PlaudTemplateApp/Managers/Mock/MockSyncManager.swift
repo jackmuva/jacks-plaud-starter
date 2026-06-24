@@ -10,9 +10,22 @@ final class MockSyncManager: SyncManagerProtocol {
     var filesPublisher: AnyPublisher<[RecordingFile], Never> {
         filesSubject.eraseToAnyPublisher()
     }
+    var idleSyncStatePublisher: AnyPublisher<IdleSyncState, Never> {
+        idleSyncStateSubject.eraseToAnyPublisher()
+    }
 
     private let stateSubject = CurrentValueSubject<SyncState, Never>(.idle)
     private let filesSubject: CurrentValueSubject<[RecordingFile], Never>
+    private let idleSyncStateSubject = CurrentValueSubject<IdleSyncState, Never>(
+        IdleSyncState(
+            enabled: true,
+            networks: [
+                IdleSyncNetwork(index: 0, ssid: "Home WiFi", hasPassword: true),
+                IdleSyncNetwork(index: 1, ssid: "Office", hasPassword: true)
+            ],
+            lastError: nil
+        )
+    )
 
     init() {
         filesSubject = CurrentValueSubject(MockSyncManager.makeMockFiles())
@@ -50,6 +63,47 @@ final class MockSyncManager: SyncManagerProtocol {
         // Mock: simulate successful export
         let mockURL = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent("\(file.sessionId).mp3")
         completion(.success(mockURL))
+    }
+
+    // MARK: - "Sync when idle" (mock)
+
+    func loadIdleSyncConfig() {}
+
+    func setIdleSyncEnabled(_ enabled: Bool) {
+        var state = idleSyncStateSubject.value
+        state.enabled = enabled
+        idleSyncStateSubject.send(state)
+    }
+
+    func addIdleSyncNetwork(ssid: String, password: String) {
+        var state = idleSyncStateSubject.value
+        let used = Set(state.networks.map { $0.index })
+        var index: UInt32 = 0
+        while used.contains(index) { index += 1 }
+        state.networks.append(IdleSyncNetwork(index: index, ssid: ssid, hasPassword: !password.isEmpty))
+        idleSyncStateSubject.send(state)
+    }
+
+    func deleteIdleSyncNetwork(index: UInt32) {
+        var state = idleSyncStateSubject.value
+        state.networks.removeAll { $0.index == index }
+        idleSyncStateSubject.send(state)
+    }
+
+    func testIdleSyncNetwork(index: UInt32) {
+        var state = idleSyncStateSubject.value
+        if let i = state.networks.firstIndex(where: { $0.index == index }) {
+            state.networks[i].testStatus = .testing
+            idleSyncStateSubject.send(state)
+        }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) { [weak self] in
+            guard let self = self else { return }
+            var state = self.idleSyncStateSubject.value
+            if let i = state.networks.firstIndex(where: { $0.index == index }) {
+                state.networks[i].testStatus = .passed
+                self.idleSyncStateSubject.send(state)
+            }
+        }
     }
 
     // MARK: - Mock Data
