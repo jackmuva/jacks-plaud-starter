@@ -1,5 +1,6 @@
 import UIKit
 import Combine
+import PlaudDeviceBasicSDK
 
 /// Settings page: Automatic Sync + Device Firmware + Sign out
 final class SettingsViewController: UIViewController {
@@ -88,6 +89,10 @@ final class SettingsViewController: UIViewController {
         super.viewWillAppear(animated)
         // Re-hide the bar after returning from a pushed screen (e.g. Sync When Idle)
         navigationController?.setNavigationBarHidden(true, animated: animated)
+        // PlaudWifiSettingPage makes itself the SDK delegate and does not restore
+        // it, so re-establish DeviceManager as the sole delegate on return —
+        // otherwise BLE callbacks (connection, recording, sync) stop reaching it.
+        PlaudDeviceAgent.shared.delegate = DeviceManager.shared
     }
 
     // MARK: - Layout
@@ -346,7 +351,10 @@ final class SettingsViewController: UIViewController {
     }
 
     @objc private func idleSyncTapped() {
-        let vc = IdleSyncConfigViewController(syncManager: SyncManager.shared)
+        // The SDK ships a complete, validated "Sync when idle" WiFi screen that
+        // implements the device's test-and-commit add protocol (test the network,
+        // commit only if reachable). Use it instead of a hand-rolled screen.
+        let vc = IdleSyncSettingsPage()
         navigationController?.pushViewController(vc, animated: true)
     }
 
@@ -363,5 +371,22 @@ final class SettingsViewController: UIViewController {
         })
         alert.addAction(UIAlertAction(title: "Cancel", style: .cancel))
         present(alert, animated: true)
+    }
+}
+
+// MARK: - Idle-sync WiFi page (SDK drop-in)
+
+/// The SDK's "Sync when idle" WiFi screen, lightly wrapped. SettingsViewController
+/// keeps the navigation bar hidden and PlaudWifiSettingPage doesn't re-show it, so
+/// we reveal it here to keep the back button reachable, and set the title.
+private final class IdleSyncSettingsPage: PlaudWifiSettingPage {
+    override func viewDidLoad() {
+        super.viewDidLoad()
+        title = "Sync When Idle"
+    }
+
+    override func viewWillAppear(_ animated: Bool) {
+        super.viewWillAppear(animated)
+        navigationController?.setNavigationBarHidden(false, animated: animated)
     }
 }

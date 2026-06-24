@@ -21,6 +21,14 @@ USER_ACCESS_TOKEN = YOUR_USER_ACCESS_TOKEN_HERE
 PLAUD_CLIENT_ID = YOUR_CLIENT_ID_HERE
 PLAUD_API_KEY = YOUR_API_KEY_HERE
 
+// [Optional] "Sync when idle" destination — where the DEVICE uploads recordings
+// on its own over WiFi (the phone is not involved). When unset, the device keeps
+// its factory-default endpoint. Bare host only — NO scheme; xcconfig treats "//"
+// as a comment, so the app prepends "wss://". e.g. your-backend.example.com/ingest
+IDLE_SYNC_WEBSOCKET_HOST = YOUR_IDLE_SYNC_HOST_HERE
+IDLE_SYNC_SERVER_TOKEN = YOUR_IDLE_SYNC_SERVER_TOKEN_HERE
+IDLE_SYNC_DEVICE_TOKEN = YOUR_IDLE_SYNC_DEVICE_TOKEN_HERE
+
 // [Deprecated] Backward compatibility alias
 PARTNER_TOKEN = $(USER_ACCESS_TOKEN)
 

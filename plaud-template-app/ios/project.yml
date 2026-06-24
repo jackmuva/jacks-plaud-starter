@@ -50,6 +50,9 @@ targets:
         PartnerToken: $(PARTNER_TOKEN)
         PlaudClientId: $(PLAUD_CLIENT_ID)
         PlaudApiKey: $(PLAUD_API_KEY)
+        IdleSyncWebsocketHost: $(IDLE_SYNC_WEBSOCKET_HOST)
+        IdleSyncServerToken: $(IDLE_SYNC_SERVER_TOKEN)
+        IdleSyncDeviceToken: $(IDLE_SYNC_DEVICE_TOKEN)
         NSBluetoothAlwaysUsageDescription: Bluetooth is required to connect to your Plaud recording device.
         NSBluetoothPeripheralUsageDescription: Bluetooth is required to connect to your Plaud recording device.
         NSLocalNetworkUsageDescription: Local network access is required for WiFi fast transfer.

@@ -70,5 +70,11 @@
 	<string>$(USER_ACCESS_TOKEN)</string>
 	<key>UserTokenBackendURL</key>
 	<string>$(USER_TOKEN_BACKEND_URL)</string>
+	<key>IdleSyncWebsocketHost</key>
+	<string>$(IDLE_SYNC_WEBSOCKET_HOST)</string>
+	<key>IdleSyncServerToken</key>
+	<string>$(IDLE_SYNC_SERVER_TOKEN)</string>
+	<key>IdleSyncDeviceToken</key>
+	<string>$(IDLE_SYNC_DEVICE_TOKEN)</string>
 </dict>
 </plist>
