@@ -1,6 +1,7 @@
 import UIKit
 import Combine
 import PlaudDeviceBasicSDK
+import PlaudBleSDK
 
 /// Settings page: Automatic Sync + Device Firmware + Sign out
 final class SettingsViewController: UIViewController {
@@ -354,7 +355,21 @@ final class SettingsViewController: UIViewController {
         // The SDK ships a complete, validated "Sync when idle" WiFi screen that
         // implements the device's test-and-commit add protocol (test the network,
         // commit only if reachable). Use it instead of a hand-rolled screen.
-        let vc = IdleSyncSettingsPage()
+        //
+        // PlaudWifiSettingPage is `public`, not `open`, so it can't be subclassed
+        // here — configure the instance directly instead. SettingsViewController
+        // keeps the navigation bar hidden and the SDK page doesn't re-show it, so
+        // reveal it before pushing to keep the back button reachable.
+        //
+        // The page only manages the WiFi-sync config (networks + test); it does
+        // NOT toggle the device's master "sync when idle" feature flag. That flag
+        // lives on BleAgent (setSyncWhenIdleEnabled) and gates whether the device
+        // responds to the page's queries — without it, the page comes back empty
+        // (no networks, no test). Turn it on before pushing.
+        BleAgent.shared.setSyncWhenIdleEnabled(value: 1)
+        let vc = PlaudWifiSettingPage()
+        vc.title = "Sync When Idle"
+        navigationController?.setNavigationBarHidden(false, animated: true)
         navigationController?.pushViewController(vc, animated: true)
     }
 
@@ -371,22 +386,5 @@ final class SettingsViewController: UIViewController {
         })
         alert.addAction(UIAlertAction(title: "Cancel", style: .cancel))
         present(alert, animated: true)
-    }
-}
-
-// MARK: - Idle-sync WiFi page (SDK drop-in)
-
-/// The SDK's "Sync when idle" WiFi screen, lightly wrapped. SettingsViewController
-/// keeps the navigation bar hidden and PlaudWifiSettingPage doesn't re-show it, so
-/// we reveal it here to keep the back button reachable, and set the title.
-private final class IdleSyncSettingsPage: PlaudWifiSettingPage {
-    override func viewDidLoad() {
-        super.viewDidLoad()
-        title = "Sync When Idle"
-    }
-
-    override func viewWillAppear(_ animated: Bool) {
-        super.viewWillAppear(animated)
-        navigationController?.setNavigationBarHidden(false, animated: animated)
     }
 }
